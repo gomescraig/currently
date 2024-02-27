@@ -2,7 +2,7 @@
 /*
 Plugin Name: Currently
 Description: The "Currently" plugin is designed to display the current work status based on configured work hours or vacation mode in WordPress.
-Version: 1.0
+Version: 1.0.1
 Author: Craig Gomes
 Author URI: https://craiggomes.com
 License: GPL v2 or later
@@ -43,58 +43,191 @@ add_action('admin_menu', 'work_status_menu');
 
 // Create settings page
 function work_status_settings_page() {
+    $plugin_data = get_plugin_data(__FILE__);
+    $plugin_version = $plugin_data['Version'];
     ?>
+    <link rel="stylesheet" type="text/css" href="<?php echo plugin_dir_url( __FILE__ ) . 'currently-styles.css'; ?>">
     <div class="wrap">
-        <h2>Currently Settings</h2>
-        <p>The "Currently" plugin is designed to display the current work status based on configured work hours or vacation mode in WordPress.</p>
-        <p>Developed by Craig Gomes | <a href="https://craiggomes.com">Visit Blog</a> | <a href="https://pixelvise.com">Need a Website? Visit Pixelvise</a></p>
-        <p> Insert shortcode <strong>[currently]</strong> wherever you want to display your status.</p>
-        <form method="post" action="options.php">
-            <?php
-            settings_fields('work_status_settings');
-            do_settings_sections('work_status_settings');
-            submit_button();
-            ?>
-        </form>
+        <div id="currently-header">
+            <div class="header-left">
+                <img id="currently-logo" src="<?php echo plugin_dir_url(__FILE__) . 'img/currently-logo.png'; ?>" alt="Currently Logo">
+                <div id="currently-info">
+                    <p>The "Currently" plugin is designed to display the current work status based on configured work hours or vacation mode in WordPress.</p>
+                    <p>Developed by Craig Gomes | <a href="https://craiggomes.com">Visit Blog</a> | <a href="https://pixelvise.com">Need a Website? Visit Pixelvise</a></p>
+                    <p>Insert shortcode <strong>[currently]</strong> wherever you want to display your status.</p>
+                </div>
+            </div>
+            <div class="header-right">
+                <h1>Currently Settings</h1>
+                <h2>Version <?php echo $plugin_version; ?></h2>
+                <!-- Display the output of the currently shortcode -->
+                <div class="currently-shortcode-output">
+                    <strong><?php echo do_shortcode('[currently]'); ?></strong>
+                </div>
+            </div>
+        </div>
+        <div id="currently-tabs">
+            <h2 class="nav-tab-wrapper">
+                <a href="#general-tab" class="nav-tab nav-tab-active">General</a>
+                <a href="#vacation-tab" class="nav-tab">Vacation</a>
+                <a href="#advanced-tab" class="nav-tab">Advanced</a>
+            </h2>
+            <div id="general-tab" class="tab-content">
+                <form method="post" action="options.php">
+                    <?php
+                    settings_fields('work_status_general_settings');
+                    do_settings_sections('work_status_general_settings');
+                    ?>
+                    <p class="submit">
+                        <input type="submit" name="submit" id="submit" class="button button-primary" value="Save Changes">
+                    </p>
+                </form>
+            </div>
+            <div id="vacation-tab" class="tab-content" style="display:none;">
+                <?php work_status_vacation_tab_content(); ?>
+            </div>
+            <div id="advanced-tab" class="tab-content" style="display:none;">
+                <!-- Add advanced settings here -->
+            </div>
+        </div>
     </div>
+    <script>
+        // JavaScript/jQuery for tab functionality
+        jQuery(document).ready(function($) {
+            $('.nav-tab-wrapper a').click(function(event) {
+                event.preventDefault();
+                $('.nav-tab-wrapper a').removeClass('nav-tab-active');
+                $(this).addClass('nav-tab-active');
+                $('.tab-content').hide();
+                var selected_tab = $(this).attr('href');
+                $(selected_tab).show();
+            });
+
+            // Ensure the initially selected tab is shown
+            var initialTab = window.location.hash || $('.nav-tab-wrapper a:first').attr('href');
+            $(initialTab).show();
+            $('.nav-tab-wrapper a[href="' + initialTab + '"]').addClass('nav-tab-active');
+        });
+    </script>
     <?php
 }
 
-// Register and initialize settings
-function work_status_settings_init() {
-    // Register settings
-    register_setting('work_status_settings', 'work_status_hours', array(
+// Add fields for vacation settings in the vacation tab
+function work_status_vacation_tab_content() {
+    ?>
+    <form method="post" action="options.php">
+        <?php
+        settings_fields('work_status_vacation_settings');
+        do_settings_sections('work_status_vacation_settings');
+        ?>
+        <p class="submit">
+            <input type="submit" name="submit" id="submit" class="button button-primary" value="Save Changes">
+        </p>
+    </form>
+    <?php
+}
+
+// Register and initialize settings for general tab
+function work_status_general_settings_init() {
+    // Register settings for work hours
+    register_setting('work_status_general_settings', 'work_status_hours', array(
         'type' => 'string',
         'sanitize_callback' => 'sanitize_work_hours',
     ));
-    register_setting('work_status_settings', 'work_status_working_text', 'sanitize_text_field');
-    register_setting('work_status_settings', 'work_status_away_text', 'sanitize_text_field');
-    register_setting('work_status_settings', 'work_status_vacation_mode', 'sanitize_checkbox');
-    register_setting('work_status_settings', 'work_status_vacation_text', 'sanitize_text_field');
 
-    // Add section and fields
-    add_settings_section('work_status_section', 'Work Hours', 'work_status_section_callback', 'work_status_settings');
+    // Register settings for working text
+    register_setting('work_status_general_settings', 'work_status_working_text', 'sanitize_text_field');
 
-    // Add fields for each day of the week
+    // Register settings for away text
+    register_setting('work_status_general_settings', 'work_status_away_text', 'sanitize_text_field');
+
+    // Add section and fields for general settings
+    add_settings_section('work_status_general_section', 'General Settings', 'work_status_general_section_callback', 'work_status_general_settings');
+
+    // Add field for each day's work hours
     $days = array('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday');
     foreach ($days as $day) {
-        add_settings_field('work_status_' . strtolower($day) . '_field', $day, 'work_status_day_field_callback', 'work_status_settings', 'work_status_section', array('day' => strtolower($day)));
+        add_settings_field(
+            'work_status_' . strtolower($day) . '_field',
+            $day . ' Work Hours',
+            'work_status_day_field_callback',
+            'work_status_general_settings',
+            'work_status_general_section',
+            array('day' => strtolower($day))
+        );
     }
 
-    // Add fields for working and away text
-    add_settings_field('work_status_working_text_field', 'Working Text', 'work_status_working_text_field_callback', 'work_status_settings', 'work_status_section');
-    add_settings_field('work_status_away_text_field', 'Away Text', 'work_status_away_text_field_callback', 'work_status_settings', 'work_status_section');
+    // Add fields for working text and away text
+    add_settings_field(
+        'work_status_working_text_field',
+        'Working Text',
+        'work_status_working_text_field_callback',
+        'work_status_general_settings',
+        'work_status_general_section'
+    );
+
+    add_settings_field(
+        'work_status_away_text_field',
+        'Away Text',
+        'work_status_away_text_field_callback',
+        'work_status_general_settings',
+        'work_status_general_section'
+    );
+}
+// Register and initialize settings for vacation tab
+function work_status_vacation_settings_init() {
+    // Register settings for vacation mode
+    register_setting('work_status_vacation_settings', 'work_status_vacation_mode', 'sanitize_vacation_mode');
+
+    // Register settings for vacation text
+    register_setting('work_status_vacation_settings', 'work_status_vacation_text', 'sanitize_text_field');
+
+    // Add section and fields for vacation settings
+    add_settings_section('work_status_vacation_section', 'Vacation Settings', 'work_status_vacation_section_callback', 'work_status_vacation_settings');
 
     // Add field for vacation mode
-    add_settings_field('work_status_vacation_mode_field', 'Vacation Mode', 'work_status_vacation_mode_field_callback', 'work_status_settings', 'work_status_section');
+    add_settings_field(
+        'work_status_vacation_mode_field',
+        'Enable Vacation Mode',
+        'work_status_vacation_mode_field_callback',
+        'work_status_vacation_settings',
+        'work_status_vacation_section'
+    );
 
     // Add field for vacation text
-    add_settings_field('work_status_vacation_text_field', 'Vacation Text', 'work_status_vacation_text_field_callback', 'work_status_settings', 'work_status_section');
+    add_settings_field(
+        'work_status_vacation_text_field',
+        'Vacation Text',
+        'work_status_vacation_text_field_callback',
+        'work_status_vacation_settings',
+        'work_status_vacation_section'
+    );
 }
-add_action('admin_init', 'work_status_settings_init');
 
-// Section callback
-function work_status_section_callback() {
+add_action('admin_init', 'work_status_vacation_settings_init');
+
+// Section callback for vacation settings
+function work_status_vacation_section_callback() {
+    echo 'Set your vacation settings below:';
+}
+
+// Field callback for vacation mode
+function work_status_vacation_mode_field_callback() {
+    $vacation_mode_enabled = get_option('work_status_vacation_mode', false);
+    echo "<input type='checkbox' name='work_status_vacation_mode' value='1' " . checked(1, $vacation_mode_enabled, false) . " />";
+}
+
+// Field callback for vacation text
+function work_status_vacation_text_field_callback() {
+    $vacation_text = get_option('work_status_vacation_text', '🏝️ On Vacation');
+    echo "<input type='text' name='work_status_vacation_text' value='" . esc_attr($vacation_text) . "' />";
+}
+
+
+add_action('admin_init', 'work_status_general_settings_init');
+
+// Section callback for general settings
+function work_status_general_section_callback() {
     echo 'Set your work hours below:';
 }
 
@@ -147,23 +280,6 @@ function work_status_working_text_field_callback() {
 function work_status_away_text_field_callback() {
     $away_text = get_option('work_status_away_text', '🏃🏻 Away');
     echo "<input type='text' name='work_status_away_text' value='" . esc_attr($away_text) . "' />";
-}
-
-// Field callback for vacation mode
-function work_status_vacation_mode_field_callback() {
-    $vacation_mode_enabled = get_option('work_status_vacation_mode', false);
-    echo "<input type='checkbox' name='work_status_vacation_mode' value='1' " . checked($vacation_mode_enabled, true, false) . " />";
-}
-
-// Field callback for vacation text
-function work_status_vacation_text_field_callback() {
-    $vacation_text = get_option('work_status_vacation_text', '🏝️ On Vacation');
-    echo "<input type='text' name='work_status_vacation_text' value='" . esc_attr($vacation_text) . "' />";
-}
-
-// Sanitize checkbox
-function sanitize_checkbox($input) {
-    return isset($input) ? true : false;
 }
 
 // Sanitize work hours

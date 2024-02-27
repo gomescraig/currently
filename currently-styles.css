@@ -1,0 +1,72 @@
+/* Styles for Currently plugin */
+
+#currently-header {
+    background-color: #6ab04c;
+    color: #fff;
+    padding: 20px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+#currently-logo {
+    width: auto;
+    height: 50px;
+    margin-right: 20px;
+}
+
+#currently-info {
+    flex: 1;
+    padding: 10px;
+}
+
+#currently-info p {
+    margin: 5px 0;
+}
+
+#currently-info a {
+    color: #fff;
+    text-decoration: underline;
+}
+
+#currently-info a:hover {
+    color: #f0f0f0;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+}
+
+.header-right {
+    text-align: right;
+}
+#currently-tabs {
+    margin-top: 20px;
+}
+
+.nav-tab-wrapper {
+    margin-bottom: 20px;
+}
+
+.nav-tab {
+    padding: 10px 15px;
+    border: 1px solid #ccc;
+    border-bottom: none;
+    background-color: #f9f9f9;
+    cursor: pointer;
+    text-decoration: none;
+    color: #555;
+}
+
+.nav-tab-active {
+    border-color: #ccc;
+    border-bottom-color: #fff;
+    background-color: #fff;
+    font-weight: bold;
+}
+
+.nav-tab:hover {
+    background-color: #e5e5e5;
+}
